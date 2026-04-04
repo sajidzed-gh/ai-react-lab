@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import axios from "axios";
 import "dotenv/config";
+import { matchCriteria } from "./utils/search.ts";
+import { AICPA_TSC_Criteria, embedCriteria } from "./utils/kb.ts";
+import { toolDetailsPrompt, soc2AuditorPrompt } from "./utils/prompts.ts";
 
 const app = express();
 app.use(cors());
@@ -31,23 +34,6 @@ Tool:
 ${tools}`;
 
     let toolinfo;
-
-    /*   const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: process.env.LLM_MODEL,
-        messages: [
-          //{ role: "system", content: "You are a specialized JSON generator. Output raw text only. No conversational filler. No markdown."},
-          { role: "user", content: evalPrompt }
-        ],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-      },
-    );
-    const raw = response.data.choices[0].message.content;*/
     const rawToolinfo = await llmApi(extractPrompt);
     console.log(`rawToolinfo, ${rawToolinfo}`);
     toolinfo = evaluationInput(JSON.parse(rawToolinfo));
@@ -102,15 +88,47 @@ ${JSON.stringify(toolinfo)}`;
   }
 });
 
+//Call once at server start.
+
+(async () => {
+  console.log("Embedding criteria");
+  await embedCriteria();
+  console.log("Embeddings criteria ready");
+})();
+
+app.post("/api/rag-analyze-tools", async (req, res) => {
+  try {
+    const { tools } = req.body;
+
+    const rawToolinfo = await llmApi(toolDetailsPrompt(tools));
+    const toolinfo = evaluationInput(JSON.parse(rawToolinfo));
+
+    const matches = await matchCriteria(
+      JSON.stringify(toolinfo),
+      AICPA_TSC_Criteria,
+    );
+    const context = matches
+      .map((m) => `${m.id} (${m.category}): ${m.requirement}`)
+      .join("\n");
+
+    const raw = await llmApi(
+      soc2AuditorPrompt(context, JSON.stringify(toolinfo)),
+    );
+    let parsed = JSON.parse(raw);
+    console.log(`parsed, | ${parsed}`);
+
+    res.json(parsed);
+  } catch (err) {
+    res.status(500).json({ error: `failed semantic serach - ${err}` });
+  }
+});
+
 const llmApi = async (prompt: string): Promise<any> => {
   const response = await axios.post(
     "https://api.groq.com/openai/v1/chat/completions",
     {
       model: process.env.LLM_MODEL,
-      messages: [
-        //{ role: "system", content: "You are a specialized JSON generator. Output raw text only. No conversational filler. No markdown."},
-        { role: "user", content: prompt },
-      ],
+      messages: [{ role: "user", content: prompt }],
     },
     {
       headers: {
@@ -118,7 +136,6 @@ const llmApi = async (prompt: string): Promise<any> => {
       },
     },
   );
-  //return response.data.choices[0].message.content;
 
   const match = response.data.choices[0].message.content.match(/\{[\s\S]*\}/);
   if (match) {
