@@ -33,10 +33,9 @@ Return ONLY JSON in this format:
 Tool:
 ${tools}`;
 
-    let toolinfo;
     const rawToolinfo = await llmApi(extractPrompt);
     console.log(`rawToolinfo, ${rawToolinfo}`);
-    toolinfo = evaluationInput(JSON.parse(rawToolinfo));
+    const toolinfo = evaluationInput(JSON.parse(rawToolinfo));
 
     const evalPrompt = `You are a SOC 2 compliance auditor.
 
@@ -84,7 +83,7 @@ ${JSON.stringify(toolinfo)}`;
     }
     res.json(parsed);
   } catch (err) {
-    res.status(500).json({ error: "Analysis failed" });
+    res.status(500).json({ error: `"Analysis failed" ${err}` });
   }
 });
 
@@ -114,7 +113,7 @@ app.post("/api/rag-analyze-tools", async (req, res) => {
     const raw = await llmApi(
       soc2AuditorPrompt(context, JSON.stringify(toolinfo)),
     );
-    let parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
     console.log(`parsed, | ${parsed}`);
 
     res.json(parsed);

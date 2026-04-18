@@ -15,7 +15,8 @@ Tool:
 ${toolname}`;
 }
 
-export function soc2AuditorPrompt(context: any, toolInfo: any): string {
+//
+export function soc2AuditorPrompt(context: string, toolInfo: string): string {
   return `
     You are a SOC2 auditor.
 
