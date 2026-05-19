@@ -1,4 +1,4 @@
-# Features short desc.
+# Features short description
 ## Civic Lens
 [Read the CivicLens docs](./src/server/civicLens/README.md)
 
