@@ -1,6 +1,6 @@
 # AI React Lab 🧪
 
-A modern, full-stack laboratory boilerplate for AI-powered web applications. This repository combines a high-performance React frontend with an Express backend, integrating both cloud-based LLMs and client-side machine learning.
+Welcome to the AI React full-stack laboratory for AI-powered web applications. This repository combines a high-performance React frontend with an Express backend, integrating both cloud-based LLMs and client-side machine learning.
 
 ## 🚀 Key Features
 
